@@ -97,7 +97,7 @@
         const DEMO_HISTORY = [
             { id: 1, char: '想', score: 65, grade: 'C', date: '9小时前', level: '等级 3', title: '初学者',
               dimensions: [
-                { name: '笔画顺序', score: 0.0, color: 'bg-red-500', text: 'text-red-500', icon: '🖊️', comment: '顺序错误' }, 
+                { name: '笔画顺序', score: 65.0, color: 'bg-red-500', text: 'text-red-500', icon: '🖊️', comment: '顺序错误' }, 
                 { name: '笔触质量', score: 87.6, color: 'bg-green-500', text: 'text-green-500', icon: '🖌️', comment: '线条流畅' }, 
                 { name: '字体结构', score: 83.7, color: 'bg-green-500', text: 'text-green-500', icon: '🏗️', comment: '结构协调' },
                 { name: '平衡性', score: 83.8, color: 'bg-green-500', text: 'text-green-500', icon: '⚖️', comment: '重心平稳' },
@@ -112,10 +112,25 @@
               dimensions: [
                 { name: '笔画顺序', score: 100, color: 'bg-green-500', text: 'text-green-500', icon: '🖊️', comment: '完全正确' },
                 { name: '笔触质量', score: 60, color: 'bg-orange-500', text: 'text-orange-500', icon: '🖌️', comment: '力度不足' },
+                { name: '字体结构', score: 75, color: 'bg-orange-500', text: 'text-orange-500', icon: '🏗️', comment: '结构尚可' },
+                { name: '平衡性', score: 65, color: 'bg-orange-500', text: 'text-orange-500', icon: '⚖️', comment: '重心略偏' },
+                { name: '整体美感', score: 70, color: 'bg-orange-500', text: 'text-orange-500', icon: '✨', comment: '有待提升' },
+                { name: '字形准确度', score: 80, color: 'bg-green-500', text: 'text-green-500', icon: '🎯', comment: '比较准确' },
+                { name: '书写节奏', score: 55, color: 'bg-red-500', text: 'text-red-500', icon: '🎵', comment: '节奏单一' },
+                { name: '进步评分', score: 10, color: 'bg-red-500', text: 'text-red-500', icon: '📈', comment: '略有进步' },
               ], advice: []
             },
              { id: 3, char: '道', score: 61, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
-              dimensions: [], advice: []
+              dimensions: [
+                { name: '笔画顺序', score: 100, color: 'bg-green-500', text: 'text-green-500', icon: '🖊️', comment: '完全正确' },
+                { name: '笔触质量', score: 50, color: 'bg-red-500', text: 'text-red-500', icon: '🖌️', comment: '线条发虚' },
+                { name: '字体结构', score: 60, color: 'bg-orange-500', text: 'text-orange-500', icon: '🏗️', comment: '结构松散' },
+                { name: '平衡性', score: 70, color: 'bg-orange-500', text: 'text-orange-500', icon: '⚖️', comment: '重心平稳' },
+                { name: '整体美感', score: 58, color: 'bg-red-500', text: 'text-red-500', icon: '✨', comment: '美感不足' },
+                { name: '字形准确度', score: 62, color: 'bg-orange-500', text: 'text-orange-500', icon: '🎯', comment: '差异稍大' },
+                { name: '书写节奏', score: 68, color: 'bg-orange-500', text: 'text-orange-500', icon: '🎵', comment: '节奏平平' },
+                { name: '进步评分', score: 0, color: 'bg-red-500', text: 'text-red-500', icon: '📈', comment: '首次练习' },
+              ], advice: []
             }
         ];
 
@@ -416,9 +431,9 @@
             );
 
             const RadarChart = ({ data }) => {
-                const size = 150;
+                const size = 200;
                 const center = size / 2;
-                const radius = 60;
+                const radius = 80;
                 const radarData = data.map(d => d.score);
                 const angles = radarData.map((_, i) => (i * 360) / radarData.length);
                 
@@ -431,12 +446,12 @@
                 const labels = ["笔画", "结构", "平衡", "美感", "准确", "笔势", "节奏", "完整"]; 
 
                 return (
-                    <div className="relative w-[150px] h-[150px] mx-auto my-4">
+                    <div className="relative w-[200px] h-[200px] mx-auto my-4">
                         <svg width={size} height={size} className="overflow-visible">
                             {gridLevels.map(level => (<polygon key={level} points={angles.map(a => { const {x,y} = getCoords(level, a); return `${x},${y}`; }).join(' ')} fill="none" stroke="#ddd" strokeWidth="1" opacity="0.5" />))}
                             {angles.map((a, i) => { const {x,y} = getCoords(100, a); return <line key={i} x1={center} y1={center} x2={x} y2={y} stroke="#eee" strokeWidth="1" /> })}
                             <polygon points={points} fill="rgba(220, 20, 60, 0.2)" stroke="#DC143C" strokeWidth="2" className="radar-path" />
-                            {angles.map((a, i) => { const {x,y} = getCoords(125, a); return ( <text key={i} x={x} y={y} fontSize="10" textAnchor="middle" dominantBaseline="middle" fill="#666"> {labels[i]} </text> ); })}
+                            {angles.map((a, i) => { const {x,y} = getCoords(110, a); return ( <text key={i} x={x} y={y} fontSize="12" textAnchor="middle" dominantBaseline="middle" fill="#666"> {labels[i]} </text> ); })}
                         </svg>
                     </div>
                 );
@@ -465,24 +480,44 @@
                                             <div className="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded mt-1 text-center shadow-md">等级: {data.grade}</div>
                                         </div>
                                     </div>
-                                    <div className="mt-4 pt-4 border-t border-stone-50"><RadarChart data={dimensions} /></div>
+                                    <div className="mt-4 pt-4 border-t border-stone-50">
+                                       <h4 className="text-center font-bold text-stone-700 mb-2">8维度评估雷达图</h4>
+                                       <RadarChart data={dimensions} />
+                                    </div>
                                 </div>
                                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
                                     <h3 className="font-bold mb-4 flex items-center gap-2 text-stone-800"><Icon name="sparkles" size={16} className="text-vermilion"/> AI 总评</h3>
                                     <p className="text-sm text-stone-600 leading-relaxed">您的“{data.char}”字整体气韵生动。其中<strong>{dimensions.find(d=>d.score>90)?.name || '笔触质量'}</strong>表现优异，但在<strong>{dimensions.find(d=>d.score<60)?.name || '字形准确度'}</strong>上还有提升空间。建议重点临摹字帖结构。</p>
                                 </div>
+                               {data.advice && data.advice.length > 0 && (
+                                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+                                       <h3 className="font-bold mb-4 flex items-center gap-2 text-stone-800"><Icon name="edit-3" size={16} className="text-vermilion"/> AI 提升建议</h3>
+                                       <div className="space-y-3">
+                                           {data.advice.map((adv, i) => (
+                                               <div key={i} className="flex items-start gap-3">
+                                                   <span className="text-lg">{adv.icon}</span>
+                                                   <p className="text-sm text-stone-600 leading-relaxed">{adv.text}</p>
+                                               </div>
+                                           ))}
+                                       </div>
+                                   </div>
+                               )}
                             </div>
                         )}
                         {activeTab === 'details' && (
-                            <div className="p-4 space-y-3 fade-enter">
+                            <div className="p-4 space-y-2 fade-enter">
                                 {dimensions.map((dim, i) => (
-                                    <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-                                        <div className="flex justify-between items-center mb-2">
-                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-stone-50 rounded-md flex items-center justify-center text-lg">{dim.icon}</div><span className="font-bold text-stone-700">{dim.name}</span></div>
-                                            <span className={`font-bold text-lg ${dim.text}`}>{dim.score.toFixed(1)}</span>
+                                    <div key={i} className="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                                        <div className="flex justify-between items-center mb-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-sm text-stone-400 w-6 text-left">{i + 1}.</span>
+                                                <div className="w-7 h-7 bg-stone-50 rounded-md flex items-center justify-center text-base">{dim.icon}</div>
+                                                <span className="font-bold text-stone-700 text-sm">{dim.name}</span>
+                                            </div>
+                                            <span className={`font-bold text-base ${dim.text}`}>{dim.score.toFixed(1)}</span>
                                         </div>
-                                        <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden mb-2"><div className={`h-full ${dim.color}`} style={{width: `${Math.max(5, dim.score)}%`}}></div></div>
-                                        <p className="text-xs text-stone-500 pl-1">{dim.comment}</p>
+                                        <div className="h-1.5 w-full bg-stone-100 rounded-full overflow-hidden mb-1.5"><div className={`h-full ${dim.color}`} style={{width: `${Math.max(5, dim.score)}%`}}></div></div>
+                                        <p className="text-xs text-stone-500">{dim.comment}</p>
                                     </div>
                                 ))}
                             </div>
