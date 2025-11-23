@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>墨韵 AI - 书法智能评估平台 (v18 头像修复版)</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Load Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --color-vermilion: #DC143C;
+            --color-ink: #2B2B2B;
+            --color-rice-paper: #F7F6F2;
+        }
+        body {
+            background-color: #e5e5e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .mobile-frame {
+            background-color: #F9F9F9;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 850px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        @media (min-width: 640px) {
+            .mobile-frame {
+                border-radius: 40px;
+                height: 90vh;
+                border: 8px solid #2B2B2B;
+            }
+        }
+        .font-serif { font-family: 'Noto Serif SC', serif; }
+        .text-vermilion { color: var(--color-vermilion); }
+        .bg-vermilion { background-color: var(--color-vermilion); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .fade-enter { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .slide-in-bottom { animation: slideInBottom 0.3s ease-out forwards; }
+        @keyframes slideInBottom {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="w-full flex justify-center"></div>
+
+    <script type="text/babel">
+        // Explicitly destructure React hooks from window object to avoid ReferenceErrors
+        const { useState, useEffect, useMemo } = React;
+        
+        // --- Components: Icons ---
+        const Icon = ({ name, size = 24, className = "", fill }) => {
+            useEffect(() => { 
+                if (window.lucide) {
+                    window.lucide.createIcons(); 
+                }
+            }, [name]);
+            return <i data-lucide={name} width={size} height={size} className={className} fill={fill || "none"}></i>;
+        };
+
+        // --- Mock Data ---
+        const DEMO_USER = { name: "张小墨", days: 12, avgScore: 86, totalPractices: 48, today: 2, maxScore: 95 };
+        const MOCK_RECOMMENDATIONS = [ ['中', '人', '大'], ['天', '地', '玄'] ];
+        const PRACTICE_CATEGORIES = [ { id: 'all', label: '全部' }, { id: 'basic', label: '入门' }, { id: 'structure', label: '结构' }, { id: 'advanced', label: '进阶' } ];
+        const PRACTICE_CHARS = [ { char: '一', level: '入门' }, { char: '十', level: '入门' }, { char: '人', level: '入门' }, { char: '大', level: '入门' }, { char: '木', level: '结构' }, { char: '林', level: '结构' }, { char: '森', level: '结构' }, { char: '永', level: '进阶' }, { char: '家', level: '进阶' }, { char: '国', level: '进阶' }, { char: '飞', level: '进阶' }, { char: '风', level: '进阶' } ];
+
+        const DEMO_HISTORY = [
+            { id: 1, char: '想', score: 65, grade: 'C', date: '9小时前', level: '等级 3', title: '初学者',
+              dimensions: [
+                { name: '笔画顺序', score: 0.0, color: 'bg-red-500', text: 'text-red-500', icon: '🖊️', comment: '顺序错误' }, 
+                { name: '笔触质量', score: 87.6, color: 'bg-green-500', text: 'text-green-500', icon: '🖌️', comment: '线条流畅' }, 
+                { name: '字体结构', score: 83.7, color: 'bg-green-500', text: 'text-green-500', icon: '🏗️', comment: '结构协调' },
+                { name: '平衡性', score: 83.8, color: 'bg-green-500', text: 'text-green-500', icon: '⚖️', comment: '重心平稳' },
+                { name: '整体美感', score: 67.3, color: 'bg-orange-500', text: 'text-orange-500', icon: '✨', comment: '稍显局促' }, 
+                { name: '字形准确度', score: 58.3, color: 'bg-red-500', text: 'text-red-500', icon: '🎯', comment: '差异较大' },
+                { name: '书写节奏', score: 73.1, color: 'bg-orange-500', text: 'text-orange-500', icon: '🎵', comment: '缺乏变化' },
+                { name: '进步评分', score: 0.0, color: 'bg-red-500', text: 'text-red-500', icon: '📈', comment: '首次练习' },
+              ],
+              advice: [ { icon: '📐', text: '准确度需加强：对照标准楷书' }, { icon: '✨', text: '笔触质量优秀，继续保持！' } ]
+            },
+             { id: 2, char: '单', score: 65, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
+              dimensions: [
+                { name: '笔画顺序', score: 100, color: 'bg-green-500', text: 'text-green-500', icon: '🖊️', comment: '完全正确' },
+                { name: '笔触质量', score: 60, color: 'bg-orange-500', text: 'text-orange-500', icon: '🖌️', comment: '力度不足' },
+              ], advice: []
+            },
+             { id: 3, char: '道', score: 61, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
+              dimensions: [], advice: []
+            }
+        ];
+
+        // --- Components: Common ---
+        const FullScreenOverlay = ({ children, zIndex = 50 }) => (
+            <div className={`absolute inset-0 bg-stone-50 z-${zIndex} flex flex-col overflow-y-auto fade-enter`}>
+                {children}
+            </div>
+        );
+
+        const ResultMenu = ({ onClose, onAction }) => (
+            <div className="fixed inset-0 z-[70] bg-black/50 flex flex-col justify-end fade-enter" onClick={onClose}>
+                <div className="bg-white rounded-t-2xl overflow-hidden slide-in-bottom" onClick={e => e.stopPropagation()}>
+                    <div className="p-4 text-center border-b border-stone-100 font-bold text-stone-800">更多操作</div>
+                    <div className="p-4 grid grid-cols-4 gap-4">
+                        {[{ icon: 'image', text: '生成海报', action: 'share' }, { icon: 'pen-tool', text: '红朱批', action: 'annotate' }, { icon: 'download', text: '保存原图', action: 'save' }, { icon: 'share-2', text: '分享', action: 'share_link' }].map((item, i) => (
+                            <div key={i} onClick={() => { onAction(item.action); onClose(); }} className="flex flex-col items-center gap-2 p-2 active:bg-stone-50 rounded-xl cursor-pointer">
+                                <div className="w-12 h-12 bg-stone-50 rounded-full flex items-center justify-center text-stone-600"><Icon name={item.icon} size={20} /></div>
+                                <span className="text-xs text-stone-600">{item.text}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="p-4 border-t border-stone-100"><button onClick={onClose} className="w-full py-3 bg-stone-50 rounded-xl text-stone-500 font-bold text-sm">取消</button></div>
+                </div>
+            </div>
+        );
+
+        const ShareModal = ({ onClose, score, grade, char }) => (
+            <div className="fixed inset-0 z-[80] bg-black/80 flex items-center justify-center p-6 fade-enter" onClick={onClose}>
+                <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="bg-rice-paper p-8 text-center border-b border-stone-100">
+                        <div className="w-20 h-20 mx-auto bg-white border-2 border-stone-100 rounded-xl flex items-center justify-center mb-4 shadow-inner"><span className="font-serif text-4xl text-stone-800">{char}</span></div>
+                        <h3 className="text-vermilion font-bold text-lg mb-1">书法评估报告</h3>
+                        <p className="text-stone-500 text-xs mb-6">得分：{score}</p>
+                        <div className="inline-block border border-yellow-500 text-yellow-600 px-4 py-1 rounded-full font-bold text-sm">等级：{grade}</div>
+                    </div>
+                    <div className="p-6 bg-white space-y-3">
+                        <button className="w-full bg-green-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2"><Icon name="message-circle" size={18} /> 分享</button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- Screens ---
+
+        const LoginScreen = ({ onLogin }) => (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center fade-enter">
+                <div className="w-24 h-24 bg-gradient-to-br from-stone-800 to-stone-600 rounded-3xl flex items-center justify-center shadow-xl mb-8 transform hover:scale-105 transition-transform">
+                    <span className="text-white text-5xl font-serif font-bold">墨</span>
+                </div>
+                <h1 className="text-3xl font-serif font-bold mb-2 text-stone-800">书法 AI 学习平台</h1>
+                <p className="text-stone-500 mb-12">8维智能评估 · 30秒即时反馈</p>
+                <div className="w-full max-w-xs bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+                    <button onClick={onLogin} className="w-full bg-vermilion text-white py-4 rounded-xl text-lg font-bold shadow-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+                        <Icon name="smartphone" size={20} /> 手机号一键登录
+                    </button>
+                </div>
+            </div>
+        );
+
+        const DashboardScreen = ({ onUpload, onNavigate }) => {
+            const StatCard = ({ icon, value, label, sub }) => (
+                <div className="bg-white p-3 rounded-2xl shadow-sm border border-stone-100 flex flex-col items-center justify-center text-center h-28 relative overflow-hidden group cursor-pointer active:scale-95 transition-transform">
+                    <div className="text-vermilion mb-1 transform group-hover:scale-110 transition-transform"><Icon name={icon} size={24} /></div>
+                    <div className="text-2xl font-bold text-stone-800 font-serif leading-none mb-1">{value}</div>
+                    <div className="text-xs text-stone-400">{label}</div>
+                    {sub && <div className="absolute top-2 right-2 text-[10px] text-green-500 font-medium">{sub}</div>}
+                </div>
+            );
+            return (
+                <div className="flex-1 p-4 space-y-6 fade-enter overflow-y-auto pb-24 no-scrollbar">
+                     <div className="flex justify-between items-center pt-4">
+                        {/* FIXED AVATAR SECTION */}
+                        <div className="flex items-center gap-3 overflow-hidden">
+                            <div className="w-10 h-10 bg-stone-200 rounded-full overflow-hidden border border-white shadow-sm shrink-0">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-sm font-bold text-stone-800 truncate">早安，{DEMO_USER.name}</div>
+                                <div className="text-[10px] text-stone-400 truncate">书山有路勤为径</div>
+                            </div>
+                        </div>
+                        <Icon name="bell" className="text-stone-400 shrink-0" size={20} />
+                    </div>
+                    
+                    <div onClick={onUpload} className="bg-[#1a1a1a] rounded-2xl p-5 text-white shadow-lg relative overflow-hidden cursor-pointer active:scale-95 transition-transform">
+                        <div className="absolute top-[-10px] right-[-10px] opacity-10 transform rotate-12"><Icon name="pen-tool" size={100} /></div>
+                        <h3 className="text-xl font-serif font-bold mb-1 relative z-10">上传书法作品</h3>
+                        <p className="text-stone-400 text-xs mb-4 relative z-10">AI 8维度智能评估，30秒出结果</p>
+                        <button className="bg-vermilion text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md hover:bg-red-600 transition-colors relative z-10"><Icon name="camera" size={16} /> 立即拍照评估</button>
+                    </div>
+                    
+                    <div className="flex gap-4">
+                        <button onClick={() => onNavigate('history')} className="flex-1 py-3 rounded-xl border border-stone-300 text-stone-600 font-bold flex items-center justify-center gap-2 hover:bg-stone-50 active:scale-95 transition-transform"><Icon name="history" size={18} /> 历史记录</button>
+                        <button onClick={() => onNavigate('practice')} className="flex-1 py-3 rounded-xl border border-stone-300 text-stone-600 font-bold flex items-center justify-center gap-2 hover:bg-stone-50 active:scale-95 transition-transform"><Icon name="book-open" size={18} /> 推荐练习</button>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-stone-800 mb-3 text-sm pl-1">学习统计</h3>
+                        <div className="grid grid-cols-3 gap-3">
+                            <StatCard icon="pen-tool" value={DEMO_USER.totalPractices} label="总练习" />
+                            <StatCard icon="star" value={DEMO_USER.avgScore} label="平均分" />
+                            <StatCard icon="trending-up" value={DEMO_USER.maxScore} label="最高分" />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex justify-between items-center mb-3 pl-1"><h3 className="font-bold text-stone-800 text-sm">推荐练习</h3><span className="text-xs text-stone-400 flex items-center gap-1 cursor-pointer hover:text-vermilion">查看更多</span></div>
+                         <div className="grid grid-cols-3 gap-3">
+                            {MOCK_RECOMMENDATIONS[0].map((char, i) => (
+                                <div key={i} className="aspect-square bg-white rounded-2xl border border-stone-100 flex flex-col items-center justify-center shadow-sm active:scale-95 transition-transform cursor-pointer" onClick={onUpload}>
+                                    <span className="font-serif text-4xl text-stone-800 mb-1">{char}</span>
+                                    <span className="text-[10px] text-stone-400">基础练习</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Refactored History Screen ---
+        const HistoryScreen = ({ onItemClick }) => (
+            <div className="flex-1 p-4 fade-enter overflow-y-auto pb-24 no-scrollbar">
+                <div className="flex justify-between items-center py-2 mb-2">
+                    <h2 className="text-lg font-bold text-stone-800 mx-auto">历史记录</h2>
+                    <Icon name="filter" size={20} className="text-stone-800 absolute right-4" />
+                </div>
+
+                {/* Progress Chart Card */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-stone-100 mb-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <span className="text-sm text-stone-500">进步曲线</span>
+                        <span className="text-xs text-stone-400">最近3次</span>
+                    </div>
+                    <div className="h-32 relative flex items-end justify-between px-4 pb-2 mb-4 border-l border-b border-stone-100">
+                        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                            <div className="border-t border-stone-100 h-px w-full"></div>
+                            <div className="border-t border-stone-100 h-px w-full"></div>
+                            <div className="border-t border-stone-100 h-px w-full"></div>
+                        </div>
+                        <svg className="absolute inset-0 w-full h-full overflow-visible" preserveAspectRatio="none">
+                            <path d="M0,128 L0,100 L150,20 L320,20 L320,128 Z" fill="rgba(220, 20, 60, 0.05)" />
+                            <polyline points="0,100 150,20 320,20" fill="none" stroke="#DC143C" strokeWidth="2" />
+                            <circle cx="0" cy="100" r="4" fill="#DC143C" />
+                            <circle cx="150" cy="20" r="4" fill="#DC143C" />
+                            <circle cx="320" cy="20" r="4" fill="#DC143C" />
+                        </svg>
+                    </div>
+                    <div className="flex justify-around text-[10px] text-stone-400">
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>最低: 61</div>
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div>平均: 64</div>
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>最高: 65</div>
+                    </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                    <div className="bg-white p-3 rounded-xl shadow-sm text-center flex flex-col items-center justify-center h-24">
+                        <Icon name="pen-tool" size={24} className="text-vermilion mb-1" />
+                        <div className="text-xl font-bold text-vermilion">3</div>
+                        <div className="text-xs text-stone-400">总次数</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl shadow-sm text-center flex flex-col items-center justify-center h-24">
+                        <Icon name="star" size={24} className="text-orange-500 mb-1" />
+                        <div className="text-xl font-bold text-orange-500">64</div>
+                        <div className="text-xs text-stone-400">平均分</div>
+                    </div>
+                    <div className="bg-white p-3 rounded-xl shadow-sm text-center flex flex-col items-center justify-center h-24">
+                        <Icon name="trophy" size={24} className="text-yellow-500 mb-1" />
+                        <div className="text-xl font-bold text-yellow-500">65</div>
+                        <div className="text-xs text-stone-400">最高分</div>
+                    </div>
+                </div>
+
+                {/* Updated History List */}
+                <div className="space-y-3">
+                    {DEMO_HISTORY.map(item => (
+                        <div key={item.id} onClick={() => onItemClick(item)} className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 cursor-pointer active:bg-stone-50 transition-colors border border-stone-50">
+                             <div className="w-16 h-16 bg-stone-100/80 rounded-xl flex items-center justify-center font-serif text-3xl text-stone-700 font-bold">
+                                {item.char}
+                            </div>
+                            <div className="flex-1 flex flex-col justify-center">
+                                <div className="flex items-baseline gap-1">
+                                    <span className="text-2xl font-bold text-vermilion">{item.score}</span>
+                                    <span className="text-sm font-bold text-vermilion">分</span>
+                                </div>
+                                <div className="text-xs text-stone-400 mt-1">{item.date}</div>
+                            </div>
+                            <Icon name="chevron-right" size={20} className="text-stone-300" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+        
+        const ProfileScreen = () => (
+            <div className="flex-1 fade-enter p-4 overflow-y-auto no-scrollbar pb-24">
+                <h2 className="text-center text-lg font-bold text-stone-800 mb-4 pt-2">个人中心</h2>
+                <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center shrink-0"><Icon name="user" size={32} className="text-vermilion" fill="#DC143C" /></div>
+                        <div><div className="text-sm bg-stone-100 text-stone-500 px-2 py-0.5 rounded inline-block mb-1">普通用户</div></div>
+                    </div>
+                    <Icon name="pencil" size={20} className="text-stone-400" />
+                </div>
+                <div className="bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl p-4 flex justify-between items-center shadow-md mb-6 text-white">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm"><Icon name="crown" size={24} fill="white" /></div>
+                        <div><div className="font-bold text-lg">升级会员</div><div className="text-xs text-white/80">无限评估 · 完整反馈 · 专属服务</div></div>
+                    </div>
+                    <Icon name="chevron-right" size={24} />
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden">
+                    <div className="p-4 border-b border-stone-50 font-bold text-stone-700">学习数据</div>
+                    {[{ icon: 'pen-tool', label: '总练习次数', value: '2 次', color: 'text-vermilion' }, { icon: 'star', label: '平均分数', value: '62.8 分', color: 'text-vermilion' }, { icon: 'calendar', label: '今日练习次数', value: '2 次', color: 'text-vermilion' }, { icon: 'flame', label: '连续天数', value: '1 天', color: 'text-vermilion' }].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 border-b border-stone-50 last:border-0">
+                            <div className="flex items-center gap-3"><Icon name={item.icon} size={20} className={item.color} /><span className="text-sm text-stone-600">{item.label}</span></div>
+                            <span className="text-sm font-bold text-stone-800">{item.value}</span>
+                        </div>
+                    ))}
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm mb-6 overflow-hidden">
+                    {[{ icon: 'settings', label: '设置' }, { icon: 'help-circle', label: '帮助与反馈' }, { icon: 'info', label: '关于我们' }].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 border-b border-stone-50 last:border-0 cursor-pointer active:bg-stone-50">
+                            <div className="flex items-center gap-3"><Icon name={item.icon} size={20} className="text-stone-500" /><span className="text-sm text-stone-600">{item.label}</span></div>
+                            <Icon name="chevron-right" size={18} className="text-stone-300" />
+                        </div>
+                    ))}
+                </div>
+                <button className="w-full py-3 rounded-full border border-red-500 text-red-500 font-bold flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"><Icon name="log-out" size={18} /> 退出登录</button>
+            </div>
+        );
+
+        const UploadScreen = ({ onConfirm, onBack }) => (
+             <FullScreenOverlay>
+                <div className="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+                     <img src="https://images.unsplash.com/photo-1555445054-848885438486?q=80&w=2070&auto=format&fit=crop" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+                     <div className="absolute inset-12 border-2 border-red-500/50 rounded-lg border-dashed grid grid-cols-2 grid-rows-2 shadow-[0_0_0_9999px_rgba(0,0,0,0.5)] pointer-events-none"><div className="border-r border-b border-red-500/30"></div><div className="border-b border-red-500/30"></div><div className="border-r border-red-500/30"></div></div>
+                     <div className="absolute top-6 left-0 w-full text-center text-white/80 text-sm drop-shadow-lg">请将文字对准红色框线中心</div>
+                     <button onClick={onBack} className="absolute top-6 left-6 text-white p-2 rounded-full bg-black/30 backdrop-blur"><Icon name="x" /></button>
+                </div>
+                <div className="h-44 bg-stone-900 rounded-t-3xl flex items-center justify-center gap-10 pb-6">
+                     <button className="text-stone-500 text-xs flex flex-col items-center gap-2"><div className="p-3 bg-stone-800 rounded-full"><Icon name="image" /></div>相册</button>
+                     <button onClick={onConfirm} className="w-20 h-20 bg-white rounded-full border-4 border-stone-500 p-1 transform active:scale-90 transition-transform"><div className="w-full h-full bg-vermilion rounded-full border-2 border-white"></div></button>
+                     <button className="text-stone-500 text-xs flex flex-col items-center gap-2"><div className="p-3 bg-stone-800 rounded-full"><Icon name="rotate-ccw" /></div>重置</button>
+                </div>
+            </FullScreenOverlay>
+        );
+
+        const EvaluatingScreen = ({ onFinish }) => {
+            const [p, setP] = useState(0);
+            useEffect(() => {
+                const t = setInterval(() => setP(old => { if (old >= 100) { clearInterval(t); setTimeout(onFinish, 500); return 100; } return old + 1; }), 20);
+                return () => clearInterval(t);
+            }, []);
+            return (
+                <FullScreenOverlay>
+                    <div className="flex-1 flex flex-col items-center justify-center px-8">
+                        <div className="relative mb-12"><div className="text-[120px] font-serif text-stone-200 leading-none">永</div><div className="absolute inset-0 text-[120px] font-serif text-vermilion leading-none overflow-hidden" style={{height: `${p}%`}}>永</div></div>
+                        <div className="w-full max-w-xs space-y-2"><div className="flex justify-between text-xs text-stone-400 font-medium"><span>AI 深度分析中...</span><span>{p}%</span></div><div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden"><div className="h-full bg-vermilion" style={{width: `${p}%`}}></div></div></div>
+                    </div>
+                </FullScreenOverlay>
+            );
+        };
+
+        const PracticeScreen = ({ onUpload }) => {
+            const [activeCat, setActiveCat] = useState('all');
+            const [searchTerm, setSearchTerm] = useState('');
+            const filteredChars = PRACTICE_CHARS.filter(c => { if (searchTerm && !c.char.includes(searchTerm)) return false; if (activeCat === 'all') return true; if (activeCat === 'basic' && c.level === '入门') return true; if (activeCat === 'structure' && c.level === '结构') return true; if (activeCat === 'advanced' && c.level === '进阶') return true; return false; });
+            return (
+                <div className="flex-1 p-6 fade-enter overflow-y-auto pb-24 no-scrollbar">
+                     <div className="sticky top-0 bg-F9F9F9 z-10 pb-4">
+                        <h2 className="text-xl font-bold text-stone-800 mb-4">字帖与练习</h2>
+                        <div className="bg-white rounded-xl p-2 flex items-center gap-2 shadow-sm border border-stone-100 mb-4"><Icon name="search" size={18} className="text-stone-400 ml-2" /><input type="text" placeholder="搜索汉字..." className="flex-1 outline-none text-sm text-stone-700" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">{PRACTICE_CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setActiveCat(cat.id)} className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${activeCat === cat.id ? 'bg-vermilion text-white' : 'bg-white text-stone-500 border border-stone-100'}`}>{cat.label}</button>))}</div>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3 pb-20">{filteredChars.map((item, i) => (<div key={i} onClick={onUpload} className="aspect-square bg-white rounded-xl shadow-sm border border-stone-100 flex flex-col items-center justify-center relative cursor-pointer active:scale-95 transition-transform"><span className="font-serif text-2xl text-stone-800">{item.char}</span><div className="absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full bg-stone-200"></div></div>))} <div className="aspect-square rounded-xl border-2 border-dashed border-stone-200 flex items-center justify-center text-stone-300"><Icon name="plus" size={24} /></div></div>
+                </div>
+            );
+        };
+
+        const ResultScreen = ({ resultData, onBack }) => {
+            const [activeTab, setActiveTab] = useState('details'); 
+            const [showMenu, setShowMenu] = useState(false);
+            const [showShare, setShowShare] = useState(false);
+            
+            const data = resultData || DEMO_HISTORY[0]; 
+            const dimensions = data.dimensions || [];
+
+            const handleMenuAction = (action) => {
+                if (action === 'share') setShowShare(true);
+            };
+
+            const TabButton = ({ id, label }) => (
+                <button onClick={() => setActiveTab(id)} className={`flex-1 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === id ? 'text-vermilion border-vermilion' : 'text-stone-400 border-transparent'}`}>{label}</button>
+            );
+
+            const RadarChart = ({ data }) => {
+                const size = 150;
+                const center = size / 2;
+                const radius = 60;
+                const radarData = data.map(d => d.score);
+                const angles = radarData.map((_, i) => (i * 360) / radarData.length);
+                
+                const getCoords = (value, angle) => {
+                    const radians = (angle - 90) * (Math.PI / 180);
+                    return { x: center + (radius * (value / 100)) * Math.cos(radians), y: center + (radius * (value / 100)) * Math.sin(radians) };
+                };
+                const points = radarData.map((val, i) => { const { x, y } = getCoords(val, angles[i]); return `${x},${y}`; }).join(' ');
+                const gridLevels = [100, 75, 50, 25];
+                const labels = ["笔画", "结构", "平衡", "美感", "准确", "笔势", "节奏", "完整"]; 
+
+                return (
+                    <div className="relative w-[150px] h-[150px] mx-auto my-4">
+                        <svg width={size} height={size} className="overflow-visible">
+                            {gridLevels.map(level => (<polygon key={level} points={angles.map(a => { const {x,y} = getCoords(level, a); return `${x},${y}`; }).join(' ')} fill="none" stroke="#ddd" strokeWidth="1" opacity="0.5" />))}
+                            {angles.map((a, i) => { const {x,y} = getCoords(100, a); return <line key={i} x1={center} y1={center} x2={x} y2={y} stroke="#eee" strokeWidth="1" /> })}
+                            <polygon points={points} fill="rgba(220, 20, 60, 0.2)" stroke="#DC143C" strokeWidth="2" className="radar-path" />
+                            {angles.map((a, i) => { const {x,y} = getCoords(125, a); return ( <text key={i} x={x} y={y} fontSize="10" textAnchor="middle" dominantBaseline="middle" fill="#666"> {labels[i]} </text> ); })}
+                        </svg>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="absolute inset-0 bg-stone-100 z-50 flex flex-col fade-enter overflow-hidden">
+                    <div className="bg-white px-4 py-3 flex justify-between items-center shadow-sm z-20 shrink-0">
+                        <button onClick={onBack}><Icon name="arrow-left" className="text-stone-600" /></button>
+                        <span className="font-bold text-stone-800">评估报告</span>
+                        <button onClick={() => setShowMenu(true)}><Icon name="more-horizontal" className="text-stone-600" /></button>
+                    </div>
+                    <div className="bg-white flex border-b border-stone-100 z-10">
+                        <TabButton id="overall" label="综合评估" /><TabButton id="details" label="维度详情" /><TabButton id="compare" label="字帖对比" />
+                    </div>
+                    <div className="flex-1 overflow-y-auto pb-24 no-scrollbar">
+                        {activeTab === 'overall' && (
+                            <div className="p-4 space-y-4 fade-enter">
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100 relative overflow-hidden">
+                                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-yellow-50 rounded-full opacity-50"></div>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="w-20 h-20 bg-stone-100 rounded-lg flex items-center justify-center border border-stone-200 overflow-hidden"><span className="font-serif text-5xl text-stone-800">{data.char}</span></div>
+                                        <div className="text-right">
+                                            <span className="text-xs text-stone-400 block">总分</span>
+                                            <span className="text-5xl font-bold font-serif text-vermilion">{data.score}</span>
+                                            <div className="bg-yellow-500 text-white text-xs px-2 py-0.5 rounded mt-1 text-center shadow-md">等级: {data.grade}</div>
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 pt-4 border-t border-stone-50"><RadarChart data={dimensions} /></div>
+                                </div>
+                                <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-100">
+                                    <h3 className="font-bold mb-4 flex items-center gap-2 text-stone-800"><Icon name="sparkles" size={16} className="text-vermilion"/> AI 总评</h3>
+                                    <p className="text-sm text-stone-600 leading-relaxed">您的“{data.char}”字整体气韵生动。其中<strong>{dimensions.find(d=>d.score>90)?.name || '笔触质量'}</strong>表现优异，但在<strong>{dimensions.find(d=>d.score<60)?.name || '字形准确度'}</strong>上还有提升空间。建议重点临摹字帖结构。</p>
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'details' && (
+                            <div className="p-4 space-y-3 fade-enter">
+                                {dimensions.map((dim, i) => (
+                                    <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <div className="flex items-center gap-3"><div className="w-8 h-8 bg-stone-50 rounded-md flex items-center justify-center text-lg">{dim.icon}</div><span className="font-bold text-stone-700">{dim.name}</span></div>
+                                            <span className={`font-bold text-lg ${dim.text}`}>{dim.score.toFixed(1)}</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden mb-2"><div className={`h-full ${dim.color}`} style={{width: `${Math.max(5, dim.score)}%`}}></div></div>
+                                        <p className="text-xs text-stone-500 pl-1">{dim.comment}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        {activeTab === 'compare' && (
+                            <div className="p-4 space-y-6 fade-enter">
+                                <div className="flex gap-4 h-48">
+                                    <div className="flex-1 flex flex-col gap-2"><span className="text-xs text-stone-400 text-center">您的作品</span><div className="flex-1 bg-white rounded-xl border-2 border-stone-200 overflow-hidden relative"><div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none opacity-30"><div className="border-r border-b border-red-500 border-dashed"></div><div className="border-b border-red-500 border-dashed"></div><div className="border-r border-red-500 border-dashed"></div></div><div className="w-full h-full flex items-center justify-center bg-stone-50 text-stone-300"><Icon name="image" size={32}/></div></div></div>
+                                    <div className="flex-1 flex flex-col gap-2"><span className="text-xs text-stone-400 text-center">名家字帖 (颜体)</span><div className="flex-1 bg-stone-800 rounded-xl border-2 border-stone-600 overflow-hidden relative flex items-center justify-center"><div className="absolute inset-0 grid grid-cols-2 grid-rows-2 pointer-events-none opacity-30"><div className="border-r border-b border-red-500 border-dashed"></div><div className="border-b border-red-500 border-dashed"></div><div className="border-r border-red-500 border-dashed"></div></div><span className="font-serif text-6xl text-white">{data.char}</span></div></div>
+                                </div>
+                                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl"><h4 className="text-sm font-bold text-orange-800 mb-2 flex items-center gap-2"><Icon name="search" size={14}/> 对比分析</h4><p className="text-xs text-orange-700 leading-relaxed">与字帖相比，您的“{data.char}”字整体稍显瘦长。字帖中的“点”画更加厚重，建议您在书写时增加按笔力度。</p></div>
+                            </div>
+                        )}
+                    </div>
+                    <div className="fixed bottom-0 w-full max-w-[400px] bg-white p-4 border-t border-stone-100 flex gap-4 z-20">
+                        <button onClick={onBack} className="flex-1 py-3 rounded-xl border border-stone-300 text-stone-600 font-bold">返回</button>
+                        <button className="flex-1 py-3 rounded-xl bg-vermilion text-white font-bold shadow-lg shadow-red-200">再练一次</button>
+                    </div>
+                    {showMenu && <ResultMenu onClose={() => setShowMenu(false)} onAction={handleMenuAction} />}
+                    {showShare && <ShareModal onClose={() => setShowShare(false)} score={data.score} grade={data.grade} char={data.char} />}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [view, setView] = useState('login'); 
+            const [tab, setTab] = useState('dashboard');
+            const [selectedResult, setSelectedResult] = useState(null);
+
+            const handleUpload = () => setView('upload');
+            const handleHistoryItemClick = (item) => { setSelectedResult(item); setView('result'); };
+            const handleNavigate = (targetTab) => setTab(targetTab);
+
+            const NavItem = ({ id, icon, label }) => (
+                <div onClick={() => setTab(id)} className={`flex flex-col items-center gap-1 cursor-pointer transition-colors ${tab === id ? 'text-vermilion' : 'text-stone-400'}`}>
+                    <Icon name={icon} size={24} />
+                    <span className="text-[10px] font-medium">{label}</span>
+                </div>
+            );
+
+            return (
+                <div className="mobile-frame">
+                    {view === 'login' && <LoginScreen onLogin={() => setView('app')} />}
+                    {view === 'app' && (
+                        <>
+                            <div className="flex-1 overflow-hidden relative bg-F9F9F9 flex flex-col">
+                                {tab === 'dashboard' && <DashboardScreen onUpload={handleUpload} onNavigate={handleNavigate} />}
+                                {tab === 'practice' && <PracticeScreen onUpload={handleUpload} />}
+                                {tab === 'history' && <HistoryScreen onItemClick={handleHistoryItemClick} />}
+                                {tab === 'profile' && <ProfileScreen />}
+                            </div>
+                            <div className="bg-white border-t border-stone-100 py-2 px-6 flex justify-between items-center z-30 h-16 shrink-0">
+                                <NavItem id="dashboard" icon="home" label="首页" />
+                                <NavItem id="practice" icon="book-open" label="练习" />
+                                <NavItem id="history" icon="history" label="历史" />
+                                <NavItem id="profile" icon="user" label="我的" />
+                            </div>
+                        </>
+                    )}
+                    {view === 'upload' && <UploadScreen onConfirm={() => setView('evaluating')} onBack={() => setView('app')} />}
+                    {view === 'evaluating' && <EvaluatingScreen onFinish={() => { setSelectedResult(null); setView('result'); }} />}
+                    {view === 'result' && <ResultScreen resultData={selectedResult} onBack={() => setView('app')} />}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
