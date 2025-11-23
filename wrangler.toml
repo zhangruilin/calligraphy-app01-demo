@@ -1,6 +1,0 @@
-name = "calli-demo"
-compatibility_date = "2025-11-23"
-main = "./index.html"
-
-[assets]
-directory = "."
