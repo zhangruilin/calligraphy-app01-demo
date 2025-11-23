@@ -108,7 +108,7 @@
               ],
               advice: [ { icon: '📐', text: '准确度需加强：对照标准楷书' }, { icon: '✨', text: '笔触质量优秀，继续保持！' } ]
             },
-             { id: 2, char: '单', score: 65, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
+             { id: 2, char: '单', score: 72, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
               dimensions: [
                 { name: '笔画顺序', score: 100, color: 'bg-green-500', text: 'text-green-500', icon: '🖊️', comment: '完全正确' },
                 { name: '笔触质量', score: 60, color: 'bg-orange-500', text: 'text-orange-500', icon: '🖌️', comment: '力度不足' },
@@ -121,7 +121,7 @@
               ], 
               advice: [ { icon: '🖌️', text: '笔触力度有待加强，尝试在下笔和收笔时增加一些顿挫感，使线条更具力量。' }, { icon: '⚖️', text: '字的重心略有偏移，特别注意上下结构的对称与稳定，确保中轴线清晰。' }, { icon: '🎵', text: '书写节奏较为平淡，可以尝试在撇、捺等笔画中加入速度变化，增加字的韵律感。' }, { icon: '👍', text: '笔画顺序非常棒，请继续保持这个好习惯！' } ]
             },
-             { id: 3, char: '道', score: 61, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
+             { id: 3, char: '道', score: 76, grade: 'C', date: '10小时前', level: '等级 3', title: '初学者',
               dimensions: [
                 { name: '笔画顺序', score: 100, color: 'bg-green-500', text: 'text-green-500', icon: '🖊️', comment: '完全正确' },
                 { name: '笔触质量', score: 50, color: 'bg-red-500', text: 'text-red-500', icon: '🖌️', comment: '线条发虚' },
@@ -130,7 +130,7 @@
                 { name: '整体美感', score: 58, color: 'bg-red-500', text: 'text-red-500', icon: '✨', comment: '美感不足' },
                 { name: '字形准确度', score: 62, color: 'bg-orange-500', text: 'text-orange-500', icon: '🎯', comment: '差异稍大' },
                 { name: '书写节奏', score: 68, color: 'bg-orange-500', text: 'text-orange-500', icon: '🎵', comment: '节奏平平' },
-                { name: '进步评分', score: 0, color: 'bg-red-500', text: 'text-red-500', icon: '📈', comment: '首次练习' },
+                { name: '进步评分', score: 30, color: 'bg-red-500', text: 'text-red-500', icon: '📈', comment: '略有练习' },
               ], 
               advice: [ { icon: '🖌️', text: '线条略显虚浮，注意中锋行笔，保持笔尖与纸面的稳定接触，让线条更扎实。' }, { icon: '🏗️', text: '结构有些松散，特别是走之底和首部的配合，注意内部部件的紧凑和外部走之底的舒展。' }, { icon: '🎯', text: '字形与标准字帖有一定差异，建议多读帖，仔细观察每一笔的位置和形态。' } ]
             }
@@ -282,8 +282,8 @@
                     </div>
                     <div className="flex justify-around text-[10px] text-stone-400">
                         <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-red-500"></div>最低: 61</div>
-                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div>平均: 64</div>
-                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>最高: 65</div>
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-orange-400"></div>平均: 68</div>
+                        <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-green-500"></div>最高: 76</div>
                     </div>
                 </div>
 
@@ -349,7 +349,7 @@
                 </div>
                 <div className="bg-white rounded-2xl shadow-sm mb-4 overflow-hidden">
                     <div className="p-4 border-b border-stone-50 font-bold text-stone-700">学习数据</div>
-                    {[{ icon: 'pen-tool', label: '总练习次数', value: '2 次', color: 'text-vermilion' }, { icon: 'star', label: '平均分数', value: '62.8 分', color: 'text-vermilion' }, { icon: 'calendar', label: '今日练习次数', value: '2 次', color: 'text-vermilion' }, { icon: 'flame', label: '连续天数', value: '1 天', color: 'text-vermilion' }].map((item, i) => (
+                    {[{ icon: 'pen-tool', label: '总练习次数', value: '3 次', color: 'text-vermilion' }, { icon: 'star', label: '平均分数', value: '62.8 分', color: 'text-vermilion' }, { icon: 'calendar', label: '今日练习次数', value: '2 次', color: 'text-vermilion' }, { icon: 'flame', label: '连续天数', value: '1 天', color: 'text-vermilion' }].map((item, i) => (
                         <div key={i} className="flex items-center justify-between p-4 border-b border-stone-50 last:border-0">
                             <div className="flex items-center gap-3"><Icon name={item.icon} size={20} className={item.color} /><span className="text-sm text-stone-600">{item.label}</span></div>
                             <span className="text-sm font-bold text-stone-800">{item.value}</span>
