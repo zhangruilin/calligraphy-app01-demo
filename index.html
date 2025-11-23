@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>墨韵 AI - 书法智能评估平台 (v18 头像修复版)</title>
+    <title>墨韵 AI - 书法智能评估平台</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load React & ReactDOM -->
@@ -303,7 +303,10 @@
                                 </div>
                                 <div className="text-xs text-stone-400 mt-1">{item.date}</div>
                             </div>
-                            <Icon name="chevron-right" size={20} className="text-stone-300" />
+                            <div className="flex items-center gap-1">
+                                <span className="text-xs text-stone-400">查看评估报告</span>
+                                <Icon name="chevron-right" size={20} className="text-stone-300" />
+                            </div>
                         </div>
                     ))}
                 </div>
